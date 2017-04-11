@@ -208,8 +208,8 @@ All requests for data are sent to an available `accounts` application instance. 
 
 Using this service registry lookup approach it's possible to add and remove services by either scaling up and down or by deploying new versions and the client applications are able to find and receive service from whatever is available.  The  [original Spring Cloud Eureka example](https://spring.io/blog/2015/07/14/microservices-with-spring) this example is based on provides details on the code required to perform both the registration and lookup.
 
-Conclusion
-----------
+Wrapping Up
+-----------
 
 There you have it--a Spring Cloud microservices example using Eureka as a service registry all running on Oracle Application Container Cloud communicating over an internal overlay network.  This example kind of got out of hand with the detour into the use of Stack Manager but I think this approach provides a very easy way to deploy sets of related services. ;)
 
