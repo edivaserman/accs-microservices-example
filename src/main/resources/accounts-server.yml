@@ -15,7 +15,8 @@ error:
 
 # HTTP Server
 server:
-  port: 2222   # HTTP (Tomcat) port
+  # This is the port the application is listening on, which is ${PORT}
+  port: ${PORT}  # HTTP (Tomcat) port
 
 # Discovery Server Access
 #  1. DEV ONLY: Reduce the lease renewal interval to speed up registration
@@ -23,11 +24,17 @@ server:
 eureka:
   client:
     serviceUrl:
-      defaultZone: http://localhost:1111/eureka/
+      # This is the (shared network) URL for Eureka.  ${REGISTRY_URL} is defined in
+      # deployment.json file.  The registry URL is the one network value that needs to be provided.
+      defaultZone: ${REGISTRY_URL}/eureka/
   instance:
+    # This is the name displayed in the Eureka console.  ${APAAS_CONTAINER_NAME} is appended to make the name
+    # unique so that each instance is listed separately (each app instance has the same ${APP_NAME})
+    instanceId: ${ORA_APP_NAME}:${APAAS_CONTAINER_NAME}
+    hostname: ${ORA_APP_NAME}
     leaseRenewalIntervalInSeconds: 5   # DO NOT DO THIS IN PRODUCTION
 
-#  3. If using the Angel release-train ONLY, give the process a unique instance id 
+#  3. If using the Angel release-train ONLY, give the process a unique instance id
 #     so that multiple instances can register when running on SAME host.  This is
 #     not needed since release-train Brixton.
 #     NOTE-1: spring.application.instance_id is only set when run on Cloud Foundry,
@@ -35,7 +42,3 @@ eureka:
 #     NOTE-2: Syntax ${x:${y}} = use $x if set, otherwise use $y
 #   metadataMap:
 #     instanceId: ${spring.application.name}:${spring.application.instance_id:${server.port}}
-      
-
-
-

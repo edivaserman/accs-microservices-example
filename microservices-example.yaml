@@ -1,0 +1,105 @@
+---
+  template:
+    templateName: MicroservicesExample
+    templateVersion: 1.0.7
+    templateDescription: Spring Eureka Microservices and Service Registry Example
+    parameters:
+      serviceRegistryName:
+        label: Service registry application name
+        description: The name of the service registry application
+        type: String
+        mandatory: true
+        default: registry
+      accountsServiceName:
+        label: Accounts service application name
+        description: The name of the accounts application
+        type: String
+        mandatory: true
+        default: accounts
+      webServiceName:
+        label: Web servcie application name
+        description: The name of the web application
+        type: String
+        mandatory: true
+        default: web
+      applicationArchivePath:
+        label: Application archive storage cloud path
+        description: Location from where the app archive can be downloaded
+        type: String
+        mandatory: true
+        default: microservices-example/microservices-example-dist.zip
+    resources:
+      registry:
+        type: apaas
+        parameters:
+          name: 
+            Fn::GetParam: serviceRegistryName
+          runtime: Java
+          subscription: MONTHLY
+          archiveURL:
+            Fn::GetParam: applicationArchivePath
+          manifest:
+            runtime:
+              majorVersion: 8
+            command: sh start.sh registration
+            isClustered: true
+            startupTime: 120
+          deployment:
+            memory: 1G
+            instances: 1
+      accounts:
+          depends_on:
+            - registry
+          type: apaas
+          parameters:
+            name: 
+              Fn::GetParam: accountsServiceName
+            runtime: Java
+            subscription: MONTHLY
+            archiveURL:
+              Fn::GetParam: applicationArchivePath
+            manifest:
+              runtime:
+                majorVersion: 8
+              command: sh start.sh accounts
+              isClustered: true
+              startupTime: 120
+            deployment:
+              memory: 2G
+              instances: 1
+              environment:
+                REGISTRY_URL:
+                  Fn::Join:
+                    - ""
+                    -
+                      - "http://"
+                      - Fn::GetAtt: [registry, name]
+                      - ":8080"
+      web:
+        depends_on:
+          - registry
+        type: apaas
+        parameters:
+          name: 
+            Fn::GetParam: webServiceName
+          runtime: Java
+          subscription: MONTHLY
+          archiveURL:
+            Fn::GetParam: applicationArchivePath
+          manifest:
+            runtime:
+              majorVersion: 8
+            command: "sh start.sh web"
+            isClustered: true
+            startupTime: 120
+          deployment:
+            memory: 2G
+            instances: 1
+            environment:
+              REGISTRY_URL:
+                Fn::Join:
+                  - ""
+                  -
+                    - "http://"
+                    - Fn::GetAtt: [registry, name]
+                    - ":8080"

@@ -1,13 +1,13 @@
 # Configure this Discovery Server
 eureka:
   instance:
-    hostname: localhost
+    hostname: ${ORA_APP_NAME}
   client:  # Not a client, don't register with yourself
     registerWithEureka: false
     fetchRegistry: false
      
 server:
-  port: 1111   # HTTP (Tomcat) port
+  port: ${PORT}   # HTTP (Tomcat) port
 
 # Discovery Server Dashboard uses FreeMarker.  Don't want Thymeleaf templates
 spring:

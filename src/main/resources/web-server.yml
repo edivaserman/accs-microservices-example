@@ -18,11 +18,13 @@ error:
 #  2. Reduce lease-renewal time so processes register more quickly
 eureka:
   instance:
+     instanceId: ${ORA_APP_NAME}:${APAAS_CONTAINER_NAME}
+     hostname: ${ORA_APP_NAME}
      leaseRenewalIntervalInSeconds: 5   # DO NOT DO THIS IN PRODUCTION
   client:
     serviceUrl:
-      defaultZone: http://localhost:1111/eureka/
+      defaultZone: ${REGISTRY_URL}/eureka/
 
 # HTTP Server
 server:
-  port: 3333   # HTTP (Tomcat) port
+  port: ${PORT}   # HTTP (Tomcat) port
