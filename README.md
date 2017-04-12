@@ -25,7 +25,7 @@ To place an application on the overlay network, simply add `isClustered: true` t
       "command": "java -jar myapp.jar",
       "isClustered" : true
     }
-    
+
 If you have a clustered application and an instance needs to find it's peers, you can use the application name to lookup the IPs of all the application instances.  For convenience, the application name you specified at creation time is available in the `ORA_APP_NAME` environment variable.  In Java, for example, you could obtain a list of the application instances' addresses with the following lines of code:
 
     String APP_NAME = System.getenv("ORA_APP_NAME");
@@ -70,7 +70,7 @@ The next step is to define the three ACCS applications. The first is the registr
       registry:
         type: apaas
         parameters:
-          name: 
+          name:
             Fn::GetParam: serviceRegistryName
           runtime: Java
           subscription: MONTHLY
@@ -86,14 +86,14 @@ The next step is to define the three ACCS applications. The first is the registr
             memory: 1G
             instances: 1
 
-The Accounts and Web resource definitions are almost identical except for naming so we'll just look at the `accounts` resource.  The dependency on the `registry` resource is explicitly captured. This is used to sequence the service creation. With `depends_on: registry` specified the ACCS `accounts` application won't be created until after the `registry` has been successfully created.  Much of the content is similar to that of the `registry` but notice the environment variables `REGISTRY_URL`.  The value of this variable is the result of using the Fn::Join function to concatenate "http://", the value of the `serviceName` attribute of the `registry` resource, and ":8080". The value is a URL that allows the Accounts application to locate the service registry. So if the name of the registry service application (obtained from the template parameter) were "ServReg" the Accounts and Web applications would use the URL "http://ServReg:8080" to connect. This works because the name of the service registry application "ServReg" can be used to look up its IP in the DNS for the internal overlay network. 
+The Accounts and Web resource definitions are almost identical except for naming so we'll just look at the `accounts` resource.  The dependency on the `registry` resource is explicitly captured. This is used to sequence the service creation. With `depends_on: registry` specified the ACCS `accounts` application won't be created until after the `registry` has been successfully created.  Much of the content is similar to that of the `registry` but notice the environment variables `REGISTRY_URL`.  The value of this variable is the result of using the Fn::Join function to concatenate "http://", the value of the `serviceName` attribute of the `registry` resource, and ":8080". The value is a URL that allows the Accounts application to locate the service registry. So if the name of the registry service application (obtained from the template parameter) were "ServReg" the Accounts and Web applications would use the URL "http://ServReg:8080" to connect. This works because the name of the service registry application "ServReg" can be used to look up its IP in the DNS for the internal overlay network.
 
       accounts:
           depends_on:
             - registry
           type: apaas
           parameters:
-            name: 
+            name:
               Fn::GetParam: accountsServiceName
             runtime: Java
             subscription: MONTHLY
@@ -126,7 +126,7 @@ To instantiate the applications defined in the stack tempalte file `springcloud-
 
 1. Navigate to the Application Container Cloud service console.
 2. Use the services menu to navigate to `Oracle Cloud Stack`.
-![Oracle Cloud Stack menu](images/cloudstackmenu.png)
+![Oracle Cloud Stack Menu](images/cloudstackmenu.png)
 3. Navigate to `Templates` on the navigation bar.  You may see some predefined stack templates.
 ![Oracle Cloud Stack Templates](images/stacktemplatelist1.png)
 4. Click `Import` and select the `microservices-example.yaml` file.
@@ -180,13 +180,13 @@ Service Registry
 
 Let's start with the Eureka service registry.  Navigate to the ACCS service console, locate the `registry` application and click on its URL.
 
-![Application List](images/applicationslist.png)
+![Applications List](images/applicationslist.png)
 
 The Spring Eureka web console will open up in a new tab or window.  Under the "Instances currently registered with Eureka" heading you'll see a table with two applications: `ACCOUNTS-SERVICE` and `WEB-SERVICE`.  These are the logical names that actual services register under.  On the right are service (ACCS application) instances that have registered under those Application names.  In the following diagram you can see one 	`accounts` and one `web` application.  Their names are composed of their application name and a unique instance id.  
 
 NOTE: I need to fix the links associated with the service instance names--they still reflect the original example's localhost deployment model.
 
-![Service Registry](images/registry1.png)
+![Service Registry UI](images/registry1.png)
 
 When each of the two application instances started up they automatically registered themselves with the service registry communicating via the internal overlay network.
 
@@ -195,18 +195,18 @@ If you scale out the `web` application to two instances the second instance will
 ![Scale Web Application](images/web-scale.png)
 
 
-![Two Web Services](images/registry2.png)
+![Two Registered Web Services](images/registry2.png)
 
 Web and Accounts Applications
 -----------------------------
 
 With an `accounts` application registered with the service registry, the `web` application is ready to use.  If you open the `web` application URL you're presented with a simple UI that allows you to query account info.
 
-![Web Application](images/web1.png)
+![Web Application UI](images/web1.png)
 
 All requests for data are sent to an available `accounts` application instance.  For each user requests for data, the `web` application queries the service registry for the URL of an `accounts` application.  It then makes calls to the `accounts` application for the required data.  Click on the link `/accounts/123456789` to fetch the account details.
 
-![Web Application](images/web2.png)
+![Account Details](images/web2.png)
 
 Using this service registry lookup approach it's possible to add and remove services by either scaling up and down or by deploying new versions and the client applications are able to find and receive service from whatever is available.  The  [original Spring Cloud Eureka example](https://spring.io/blog/2015/07/14/microservices-with-spring) this example is based on provides details on the code required to perform both the registration and lookup.
 
@@ -214,7 +214,3 @@ Wrapping Up
 -----------
 
 There you have it--a Spring Cloud microservices example using Eureka as a service registry all running on Oracle Application Container Cloud communicating over an internal overlay network.  This example kind of got out of hand with the detour into the use of Stack Manager but I think this approach provides a very easy way to deploy sets of related services. ;)
-
-
-
-
