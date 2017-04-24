@@ -3,13 +3,13 @@ Microservices with Eureka on Oracle Application Container Cloud
 
 The [Oracle Application Container Cloud Service](http://cloud.oracle.com/acc) (ACCS) is a polyglot application platform designed to support cloud native application deployment.  It has great support for applications that follow the [12 Factor app](http://12factor.net) cloud native principals like separation of configuration from code, a stateless process model, and the ability to elastically scale out and in by adding and removing application instances.  Recently, ACCS improved its support for microservice-style applications by adding overlay networking so that a) application instances can communicate with their peers to support clustering, and b) applications can collaborate and provide services to each other.  The later is a core enabler of a microservices architecture.  Using the ACCS [overlay networking](https://en.wikipedia.org/wiki/Overlay_network) support applications can communicate directly over a private IP network.
 
-To demonstrate this new functionality, I’ve taken an existing [Spring Cloud microservices example](https://spring.io/blog/2015/07/14/microservices-with-spring) and deployed it to ACCS. The example was originally designed to run locally on a desktop so the few changes I made were mostly to the configuration removing things like hardwired references to `localhost`. The example is comprised of three ACCS applications: a Web service, an Accounts service, and a [Netflix/Spring Cloud Eureka](https://cloud.spring.io/spring-cloud-netflix/) [Service Registry](http://microservices.io/patterns/service-registry.html) that applications use to locate each other.  Clients interact with the Web application which obtains account information from the backing Accounts applicattin which in turn manages data in a database.  The service registry is consulted by the Web application each time it needs an Account service.  The Service Registry is the only other application every other application needs to know.  Every other application can be found through the registry.
+To demonstrate this new functionality, I’ve taken an existing [Spring Cloud microservices example](https://spring.io/blog/2015/07/14/microservices-with-spring) and deployed it to ACCS. The example was originally designed to run locally on a desktop so the few changes I made were mostly to the configuration removing things like hardwired references to `localhost`. The example is comprised of three ACCS applications: a Web service, an Accounts service, and a [Netflix/Spring Cloud Eureka](https://cloud.spring.io/spring-cloud-netflix/) [Service Registry](http://microservices.io/patterns/service-registry.html) that applications use to locate each other.  Clients interact with the Web application which obtains account information from the backing Accounts application which in turn manages data in a database.  The service registry is consulted by the Web application each time it needs an Account service.  The Service Registry is the only other application every other application needs to know.  Every other application can be found through the registry.
 
 ![Logical Architecture](images/Picture5.png)
 
 This is just an example so for simplicity the database is the in-memory H2 DB that’s embedded in the Accounts application.   Completing the picture is the ACCS load balancer which accepts all incoming HTTP traffic and distributes it across available instances of a given application.
 
-With ACCS overlay networking enabled, the Web, Accounts, and Service Registry are all placed on a shared TCP/IP network so the Web application can connect directly to the Accounts application without going back out to the public internet and through the load balancer.  This obviously improves performance but it also makes it possible to expose APIs that are only accessible to other applications and not to external clients.  The ACCS load balancer currently only accepts incoming HTTP traffic on port 80, but applications can use any port and any protocol to communicate privately amongst themselves on the internal overlay network.
+With ACCS overlay networking enabled, the Web, Accounts, and Service Registry are all placed on a shared network so the Web application can connect directly to the Accounts application without going back out to the public internet and through the load balancer.  This obviously improves performance but it also makes it possible to expose APIs that are only accessible to other applications and not to external clients.  The ACCS load balancer currently only accepts incoming HTTP traffic on port 80, but applications can use any port and any protocol to communicate privately amongst themselves on the internal overlay network.
 
 ![Overlay Network Architecture](images/Picture6.png)
 
@@ -36,7 +36,7 @@ To get the IPs of other applications you would also use their name as specified 
 Deploying the example to ACCS using Stack Manager
 =================================================
 
-Now that we've laid out the basics of enabling network connectivity let's return to the example.  For simplicity the example build generates a single fat jar that contains all three services that you can select with an argument when you start up.  
+Now that we've laid out the basics of enabling network connectivity let's return to the example.  For simplicity the build generates a single fat jar that contains all three services that you can select with an argument when you start up.  
 
 Once you've cloned the source repository, cd into the top level folder and run `mvn clean package`.  This will produce a deployable application archive that includes the fat jar plus any scripts required to run on ACCS.
 
@@ -64,7 +64,7 @@ A stack template also solves a problem I mentioned earlier on which is that ever
         mandatory: true
         default: web
 
-The next step is to define the three ACCS applications. The first is the registry. Under the `resources` object, I've defined a resource (in this case an ACCS application) with an internal template name `registry` of type `apaas` (Application Platform as a Service, AKA ACCS).  Notice that the resource takes a number of parameters to create it, including `name` which I've set to the value of the stack template `serviceRegistryName` parameter I'll have to provide later.  The manifest and deployment properties have the exact same function and structure as the standard manifest.json and deployment.json files.  The stack template let's us inline their contents as YAML.  Notice the inclusion of `isClustered: true` in the manifest.
+The next step is to define the three ACCS applications. The first is the registry. Under the `resources` object, I've defined an ACCS application with an internal template name `registry` of type `apaas` (Application Platform as a Service, AKA ACCS).  Notice that the resource takes a number of parameters to create it, including `name` which I've set to the value of the stack template `serviceRegistryName` parameter I'll have to provide later.  The manifest and deployment properties have the exact same function and structure as the standard manifest.json and deployment.json files.  The stack template let's us inline their contents as YAML.  Notice the inclusion of `isClustered: true` in the manifest.
 
     resources:
       registry:
@@ -86,7 +86,7 @@ The next step is to define the three ACCS applications. The first is the registr
             memory: 1G
             instances: 1
 
-The Accounts and Web resource definitions are almost identical except for naming so we'll just look at the `accounts` resource.  The dependency on the `registry` resource is explicitly captured. This is used to sequence the service creation. With `depends_on: registry` specified the ACCS `accounts` application won't be created until after the `registry` has been successfully created.  Much of the content is similar to that of the `registry` but notice the environment variables `REGISTRY_URL`.  The value of this variable is the result of using the Fn::Join function to concatenate "http://", the value of the `serviceName` attribute of the `registry` resource, and ":8080". The value is a URL that allows the Accounts application to locate the service registry. So if the name of the registry service application (obtained from the template parameter) were "ServReg" the Accounts and Web applications would use the URL "http://ServReg:8080" to connect. This works because the name of the service registry application "ServReg" can be used to look up its IP in the DNS for the internal overlay network.
+The Accounts and Web resource definitions are almost identical except for naming so we'll just look at the `accounts` resource.  The dependency on the `registry` resource is explicitly captured. This is used to sequence the service creation. With `depends_on: registry` specified the ACCS `accounts` application won't be created until after the `registry` has been successfully created.  Much of the content is similar to that of the `registry` but notice the environment variables `REGISTRY_URL`.  The value of this variable is the result of using the Fn::Join function to concatenate "http://", the value of the `serviceName` attribute of the `registry` resource, and ":8080". The value is a URL that allows the Accounts application to locate the service registry. So if the name of the registry service application (obtained from the template parameter) were "ServReg" the Accounts and Web applications would use the URL "http://ServReg:8080" to connect. This works because the name of the service registry application "ServReg" can be used to look up its IP in the internal overlay network DNS.
 
       accounts:
           depends_on:
@@ -122,7 +122,7 @@ Using parameters, functions, and attribute references we're able to avoid hard w
 Importing the Stack Template
 ----------------------------
 
-To instantiate the applications defined in the stack tempalte file `springcloud-eureka.yaml`, you first have to import it into Stack Manager.  To do this:
+To instantiate the applications defined in the stack template file `microservices-example.yaml`, you first have to import it into Stack Manager.  To do this:
 
 1. Navigate to the Application Container Cloud service console.
 2. Use the services menu to navigate to `Oracle Cloud Stack`.
@@ -184,7 +184,7 @@ Let's start with the Eureka service registry.  Navigate to the ACCS service cons
 
 The Spring Eureka web console will open up in a new tab or window.  Under the "Instances currently registered with Eureka" heading you'll see a table with two applications: `ACCOUNTS-SERVICE` and `WEB-SERVICE`.  These are the logical names that actual services register under.  On the right are service (ACCS application) instances that have registered under those Application names.  In the following diagram you can see one 	`accounts` and one `web` application.  Their names are composed of their application name and a unique instance id.  
 
-NOTE: I need to fix the links associated with the service instance names--they still reflect the original example's localhost deployment model.
+NOTE: The link targets associated with the service instance names still reflect the original example's localhost deployment model and will need to be updated.
 
 ![Service Registry UI](images/registry1.png)
 
@@ -200,7 +200,7 @@ If you scale out the `web` application to two instances the second instance will
 Web and Accounts Applications
 -----------------------------
 
-With an `accounts` application registered with the service registry, the `web` application is ready to use.  If you open the `web` application URL you're presented with a simple UI that allows you to query account info.
+With an `accounts` application registered with the service registry, the `web` application can be used.  If you open the `web` application URL you're presented with a simple UI that allows you to query account info.
 
 ![Web Application UI](images/web1.png)
 
